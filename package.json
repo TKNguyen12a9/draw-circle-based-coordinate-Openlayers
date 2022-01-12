@@ -1,0 +1,19 @@
+{
+  "name": "drawCircle",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon server",
+    "dev": "node server"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.2",
+    "nodemon": "^2.0.15",
+    "ol": "^6.11.0",
+    "openlayers": "^4.6.5"
+  }
+}

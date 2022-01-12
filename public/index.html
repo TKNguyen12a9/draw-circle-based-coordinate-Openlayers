@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/qs/6.9.2/qs.min.js"
+      integrity="sha256-TDxXjkAUay70ae/QJBEpGKkpVslXaHHayklIVglFRT4="
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://openlayers.org/en/v6.4.3/build/ol.js"></script>
+    <title>Document</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        width: 100%;
+        padding: 0px;
+        margin: 0px;
+      }
+
+      .map {
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map" class="map"></div>
+
+    <script>
+      var map = new ol.Map({
+        target: "map",
+        layers: [
+          new ol.layer.Tile({
+            source: new ol.source.OSM(),
+          }),
+        ],
+        view: new ol.View({
+          //   center: ol.proj.fromLonLat([0, 0]),
+          center: ol.proj.fromLonLat([126.5, 35]),
+          zoom: 3,
+        }),
+      });
+
+      var layer = new ol.layer.Vector({
+        // NOTE: Provides a source of features for vector layers. Vector features provided by this source are suitable for editing
+        source: new ol.source.Vector({
+          projection: "EPSG:4326",
+          //   projection: "EPSG:3857",
+
+          features: [],
+        }),
+      });
+
+      map.addLayer(layer);
+      // handle map click
+      map.on("click", handleMapClick);
+      var vectorSource = layer.getSource();
+      console.log(`vectorSource: ${JSON.stringify(vectorSource)}`);
+
+      /*
+        Your problem is the addMarker function takes coordinates in the EPSG:3857 projection, the addCircle function takes them in the EPSG:4326 projection.
+        If you want to pass in the same coordinates, you have to make them consistent.
+      */
+      function createCircle(
+        circleCenterX,
+        circleCenterY,
+        circleRadius,
+        pointsToEnd
+      ) {
+        let angleToAdd = 360 / pointsToEnd;
+        let coords = [];
+        let angle = 0;
+        for (let i = 0; i < pointsToEnd; i++) {
+          angle += angleToAdd;
+          let coordX =
+            circleCenterX + circleRadius * Math.cos((angle * Math.PI) / 180);
+          let coordY =
+            circleCenterY + circleRadius * Math.sin((angle * Math.PI) / 180);
+          coords.push([coordX, coordY]);
+        }
+        return coords;
+      }
+
+      // NOTE: might not need this
+      function addMarker(coordinates) {
+        var marker = new ol.Feature(new ol.geom.Point(coordinates));
+        marker.setStyle(
+          new ol.style.Style({
+            image: new ol.style.Circle({
+              radius: 1,
+              fill: new ol.style.Fill({
+                color: "red",
+              }),
+            }),
+          })
+        );
+        vectorSource.addFeature(marker);
+      }
+
+      function addCircle(coords) {
+        var circleCoords = createCircle(coords[0], coords[1], 0.00015, 10);
+        console.log("circle coordinates", circleCoords);
+
+        var polygon = new ol.geom.Polygon([circleCoords]);
+        console.log(`polygon: ${JSON.stringify(polygon)}`);
+        console.log(polygon);
+        console.log(polygon.flatCoordinates);
+
+        let out = polygon.intersectsCoordinate(coords);
+        console.log(`out: `, out);
+        polygon.transform("EPSG:4326", "EPSG:3857");
+        // polygon.transform("EPSG:900913", "EPSG:4326");
+
+        // addMarker(coords);
+
+        polygon = new ol.Feature(polygon);
+        vectorSource.addFeature(polygon);
+      }
+
+      function handleMapClick(evt) {
+        console.log(`coordinate: ${evt.coordinate}`);
+
+        addCircle(
+          ol.proj.transform(evt.coordinate, "EPSG:900913", "EPSG:4326")
+        );
+        // addMarker(
+        //   ol.proj.transform(evt.coordinate, "EPSG:900913", "EPSG:4326")
+        // );
+        console.log(
+          `transformed coordinate: ${ol.proj.transform(
+            evt.coordinate,
+            "EPSG:900913",
+            "EPSG:4326"
+          )}`
+        );
+      }
+
+      //   addCircle(ol.proj.toLonLat([708683.3598450683, 1850098.1965979263]));
+      //   addMarker([708683.3598450683, 1850098.1965979263]);
+
+      // NOTE: display and hide after clicks
+      //   <div class="popup" onclick="myFunction()">
+      //     Click me to toggle the popup!
+      //     <span class="popuptext" id="myPopup">
+      //       A Simple Popup!
+      //     </span>
+      //   </div>;
+      //   function myFunction() {
+      //     var popup = document.getElementById("myPopup");
+      //     popup.classList.toggle("show");
+      //   }
+    </script>
+  </body>
+</html>
